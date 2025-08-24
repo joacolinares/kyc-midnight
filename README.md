@@ -185,7 +185,7 @@ ledger allowedCountry: Bytes<2>;             // ISO country code
 ledger allowedMinAge: Uint<8>;               // Minimum age requirement
 ```
 
-#### Key Functions
+#### OpenZeppelin Contract Key Functions
 
 ##### Admin Functions (Owner Only)
 - `bumpEpoch()`: Increment policy version
