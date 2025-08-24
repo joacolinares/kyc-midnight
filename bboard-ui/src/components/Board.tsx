@@ -8,6 +8,8 @@ import { type BoardDeployment } from '../contexts';
 import { type Observable } from 'rxjs';
 import Webcam from 'react-webcam';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { ToastContainer, toast } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 // Interfaces
 interface ExtractedData {
@@ -165,18 +167,20 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
 
   const delay = (ms: number) => new Promise(res => setTimeout(res, ms))
 
-  const handleVerifyClick = async () => {
-    if (!image) {
-      setError('Por favor, selecciona una imagen primero.');
-      return;
-    }
+const handleVerifyClick = async () => {
+  if (!image) {
+    setError('Por favor, selecciona una imagen primero.')
+    toast.error('Selecciona una imagen primero')
+    return
+  }
 
-    setLoading(true);
-    setError(null);
-    setExtractedData(null);
+  const tId = toast.loading('Procesando documento...')
+  setLoading(true)
+  setError(null)
+  setExtractedData(null)
 
-    try {
-      const prompt = `
+  try {
+    const prompt = `
       Analiza la imagen de este documento de identidad (DNI). Extrae únicamente los siguientes datos y devuélvelos en formato JSON. No incluyas ninguna otra explicación o texto introductorio, solo el objeto JSON.
       1.  nombre (string)
       2.  apellido (string)
@@ -190,26 +194,50 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
         "nacionalidad": "AR",
         "fechaNacimiento": "1990-05-15"
       }
-      `;
+    `
 
-      const imagePart = await fileToGenerativePart(image);
-      const result = await model.generateContent([prompt, imagePart]);
-      const response = await result.response;
-      const text = response.text();
+    const imagePart = await fileToGenerativePart(image)
+    const result = await model.generateContent([prompt, imagePart])
+    const response = await result.response
+    const text = response.text()
 
-      const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
-      const parsedData = JSON.parse(jsonString) as ExtractedData;
-      setExtractedData(parsedData);
-      await delay(3000)
-      onPostMessage()
-    } catch (e) {
-      console.error(e);
-      setError('Ocurrió un error al procesar la imagen. Asegúrate de que la imagen sea clara y que la API key sea correcta.');
-    } finally {
-      setLoading(false);
-    }
-  };
+    const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim()
+    const parsedData = JSON.parse(jsonString) as ExtractedData
 
+    setExtractedData(parsedData)
+    setLoading(false)
+
+    // Informar éxito del OCR y que sigue el envío
+    toast.update(tId, {
+      render: 'Datos extraídos. Enviando verificación...',
+      type: 'info',
+      isLoading: true,
+      autoClose: false
+    })
+
+    await delay(3000)
+    await onPostMessage() // esto dispara sus propios toasts (ver abajo)
+
+    // Si onPostMessage no lanza error, cerramos este loader (el de OCR)
+    toast.update(tId, {
+      render: 'Procesamiento completado ✅',
+      type: 'success',
+      isLoading: false,
+      autoClose: 2000
+    })
+  } catch (e) {
+    console.error(e)
+    setError('Ocurrió un error al procesar la imagen. Asegúrate de que la imagen sea clara y que la API key sea correcta.')
+    toast.update(tId, {
+      render: 'Error procesando la imagen',
+      type: 'error',
+      isLoading: false,
+      autoClose: 4000
+    })
+  } finally {
+    setLoading(false)
+  }
+}
   const captureImage = () => {
     const imageSrc = webcamRef.current?.getScreenshot();
     if (imageSrc) {

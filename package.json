@@ -34,6 +34,7 @@
     "fp-ts": "^2.16.10",
     "pino": "^9.7.0",
     "pino-pretty": "^13.0.0",
+    "react-toastify": "^11.0.5",
     "rxjs": "^7.8.2",
     "semver": "^7.7.2",
     "testcontainers": "^11.0.3",

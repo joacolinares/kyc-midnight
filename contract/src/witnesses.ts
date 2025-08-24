@@ -70,7 +70,7 @@ function iso2ToBytes2(code: string): Uint8Array {
 // ¡OJO!: userSecretKey es un *secreto de usuario*, no tu ZswapCoinPublicKey.
 // Para tests, podés usar cualquier 32B (esto derivará siempre el mismo uPk).
 const TEST_USER_SK_HEX =
-  "6e63651bbc5746b77ab8e520462b484b97bf5d92f2adce05c52c10468873c8a1";
+  "6e62651bbc5146b77ab8e520462b484b97bf5d92f1adce05c57c10468334c8a1";
 
 const TEST_AGE_YEARS = 21;   // se evaluará contra allowedMinAge on-chain
 const TEST_COUNTRY   = "AR"; // se evaluará contra allowedCountry on-chain
