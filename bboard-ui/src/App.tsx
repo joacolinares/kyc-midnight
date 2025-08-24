@@ -82,6 +82,8 @@ export const styles = {
 const App: React.FC = () => {
   const boardApiProvider = useDeployedBoardContext();
   const [boardDeployments, setBoardDeployments] = useState<Array<Observable<BoardDeployment>>>([]);
+  const [activeButton, setActiveButton] = useState<boolean>(true);
+  const [showButton, setShowButton] = useState<boolean>(true);
 
   useEffect(() => {
     const subscription = boardApiProvider.boardDeployments$.subscribe(setBoardDeployments);
@@ -113,22 +115,41 @@ const App: React.FC = () => {
   );
 
   return (
-    <Box sx={{ background: '#000', minHeight: '100vh' }}>
+    <Box
+  sx={{
+    minHeight: '100dvh',
+    colorScheme: 'dark',
+    backgroundImage: `
+      radial-gradient(80vmax 60vmax at 12% -10%, rgba(0,229,255,.25), transparent 60%),
+      radial-gradient(90vmax 65vmax at 110% 120%, rgba(168,85,247,.2), transparent 60%),
+      linear-gradient(180deg, #0b1220, #06080f)
+    `,
+    backgroundAttachment: 'fixed, fixed, fixed',
+    backgroundBlendMode: 'screen, screen, normal'
+  }}
+>
       <MainLayout>
-      <center>
-        
-  <button
-    className="connect-wallet-btn"
-    onClick={() =>
-      onJoinBoard("0200de94cf654bec52f403f235dd324f7613098bd862b4df3b9c22b6c3172de6709b")
-    }
-  >
-    🚀 Conectar Wallet
-  </button>
+        <center>
 
-  
+          {/* <button
+            className="px-6 py-3 bg-blue-600 text-white rounded-2xl shadow-md hover:bg-blue-700 hover:shadow-lg transition-all duration-300 ease-in-out"
+            onClick={() =>
+              onJoinBoard("0200de94cf654bec52f403f235dd324f7613098bd862b4df3b9c22b6c3172de6709b")
+            }
+          >
+            Conectar Wallet
+          </button> */}
 
-</center>
+{ showButton && <SwitchButton onClick={() => { 
+            onJoinBoard("0200de94cf654bec52f403f235dd324f7613098bd862b4df3b9c22b6c3172de6709b")
+            setShowButton(false)
+          }
+          } isActive={activeButton}>
+            Conectar Wallet
+          </SwitchButton>}
+
+
+        </center>
 
         {boardDeployments.map((boardDeployment, idx) => (
           <div data-testid={`board-${idx}`} key={`board-${idx}`}>

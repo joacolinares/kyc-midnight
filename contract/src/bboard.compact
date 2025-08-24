@@ -1,7 +1,14 @@
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// You may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
 
 
 
-// KYC Attestations (Ownable + Country + Compact 0.17)
+
+# KYC Attestations (Ownable + Country + Compact 0.17)
 pragma language_version 0.17;
 
 
@@ -9,29 +16,33 @@ import CompactStandardLibrary;
 import "./modules/Ownable" prefix Ownable_;
 
 
-// (Opcional: reexport para TS tests)
+// (Optional: re-export for TS tests)
 // export { ZswapCoinPublicKey, ContractAddress, Either };
 
 
+
+
 // =====================
-// ===== Tipos =========
+// ====== Types ========
 // =====================
 export struct Attestation {
  epoch: Uint<64>;
- adult: Uint<1>;       // 1 si cumple mayoría de edad
- inCountry: Uint<1>;   // 1 si pertenece al país permitido (p.ej. "AR")
+ adult: Uint<1>;       // 1 if meets legal age
+ inCountry: Uint<1>;   // 1 if belongs to the allowed country (e.g., "AR")
 }
 
 
+
+
 // =====================
-// ===== Ledger =========
+// ====== Ledger =======
 // =====================
 export ledger epoch: Counter;
 export ledger instance: Counter;
 export ledger attest: Map<Bytes<32>, Attestation>;
 
 
-// Política pública: país permitido (ISO alpha-2, 2 bytes). Si es "\x00\x00", está sin configurar.
+// Public policy: allowed country (ISO alpha-2, 2 bytes). If "\x00\x00", it's unset.
 export ledger allowedCountry: Bytes<2>;
 export ledger allowedMinAge: Uint<8>;
 
@@ -43,11 +54,13 @@ export ledger allowedMinAge: Uint<8>;
 // =====================
 witness userSecretKey(): Bytes<32>;
 witness userAgeBytes(): Bytes<32>;
-witness userCountryAlpha2(): Bytes<2>;   // ej: "AR"
+witness userCountryAlpha2(): Bytes<2>;   // e.g., "AR"
+
+
 
 
 // ==========================
-// ===== Constructor =========
+// ====== Constructor =======
 // ==========================
 constructor(initialOwner: Either<ZswapCoinPublicKey, ContractAddress>) {
  instance.increment(1 as Uint<16>);
@@ -55,9 +68,9 @@ constructor(initialOwner: Either<ZswapCoinPublicKey, ContractAddress>) {
  Ownable_initialize(initialOwner);
 
 
- // Defaults al desplegar:
- allowedCountry = disclose('AR');                 // 'AR' es Bytes<2>
- allowedMinAge  = disclose(21 as Uint<8>);        // 21 años
+ // Defaults on deploy:
+ allowedCountry = disclose('AR');          // 'AR' is Bytes<2>
+ allowedMinAge  = disclose(21 as Uint<8>); // 21 years
 }
 
 
@@ -75,8 +88,10 @@ circuit userUPk(): Bytes<32> {
 }
 
 
+
+
 // ===============================
-// ===== Admin (gobernanza) ======
+// ===== Admin (governance) ======
 // ===============================
 export circuit bumpEpoch(): [] {
  Ownable_assertOnlyOwner();
@@ -121,7 +136,7 @@ export circuit setAllowedMinAge(age: Uint<8>): [] {
 export circuit setAllowedCountry(country: Bytes<2>): [] {
  Ownable_assertOnlyOwner();
  allowedCountry = disclose(country);
- // opcional: versionar políticas
+ // optional: version policies
  epoch.increment(1 as Uint<16>);
 }
 
@@ -129,18 +144,20 @@ export circuit setAllowedCountry(country: Bytes<2>): [] {
 
 
 // ===========================
-// ===== Lecturas/util =======
+// ===== Reads / Utils =======
 // ===========================
 export circuit getEpoch(): Uint<64> { return (epoch as Field) as Uint<64>; }
 export circuit getInstanceBytes(): Bytes<32> { return (instance as Field) as Bytes<32>; }
 export circuit getAllowedCountry(): Bytes<2> { return allowedCountry; }
 
 
+
+
 // ===================================
-// ===== Alta / upgrade / refresh =====
+// ===== Enroll / Upgrade / Refresh ===
 // ===================================
 export circuit enrollOnce(): [] {
- // Políticas deben estar seteadas
+ // Policies must be set
  assert(!(allowedCountry == pad(2, "")), "country policy unset");
  assert(allowedMinAge > (0 as Uint<8>), "age policy unset");
 
@@ -149,12 +166,12 @@ export circuit enrollOnce(): [] {
  assert(!attest.member(disclose(uPk)), "already enrolled");
 
 
- // Adulto según política on-chain
+ // Adult flag according to on-chain policy
  const age8 = ((userAgeBytes() as Field) as Uint<16>) as Uint<8>;
  const adultBit = (age8 >= allowedMinAge) ? (1 as Uint<1>) : (0 as Uint<1>);
 
 
- // País según política on-chain
+ // Country flag according to on-chain policy
  const inCountryBit = (userCountryAlpha2() == allowedCountry)
    ? (1 as Uint<1>) : (0 as Uint<1>);
 
@@ -179,13 +196,13 @@ export circuit selfUpgradeToAdult(): [] {
 
 
  const e = (epoch as Field) as Uint<64>;
- attest.insert(disclose(uPk), disclose(Attestation { epoch: e, adult: 1 as Uint<1>, inCountry: cur.inCountry }));
+ attest.insert(disclose(uPk), disclose(Attestation {
+   epoch: e, adult: 1 as Uint<1>, inCountry: cur.inCountry
+ }));
 }
 
 
-
-
-// Recalcular sólo flag país con witness actual (por cambio de residencia o política)
+// Recompute only the country flag with the current witness (e.g., residency/policy changes)
 export circuit selfRefreshCountry(): [] {
  assert(!(allowedCountry == pad(2, "")), "country policy unset");
 
@@ -206,8 +223,10 @@ export circuit selfRefreshCountry(): [] {
 }
 
 
+
+
 // ===========================
-// ======== Consultas =========
+// ========= Queries =========
 // ===========================
 export circuit checkAdultByUpk(uPk: Bytes<32>): Uint<1> {
  assert(attest.member(disclose(uPk)), "no record");
@@ -254,6 +273,8 @@ export circuit checkEligibleSelf(): Uint<1> {
 }
 
 
+
+
 // ===============================
 // ===== Ownable (helpers) =======
 // ===============================
@@ -266,4 +287,14 @@ export circuit transferOwnership(newOwner: Either<ZswapCoinPublicKey, ContractAd
 export circuit renounceOwnership(): [] {
  Ownable_renounceOwnership();
 }
+
+
+
+
+
+
+
+
+
+
 

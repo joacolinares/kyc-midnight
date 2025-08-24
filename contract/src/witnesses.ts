@@ -18,7 +18,7 @@
  * as well as the single witness function that accesses it.
  */
 
-import { Ledger } from "./managed/bboard/contract/index.cjs";
+import { Ledger, Witnesses } from "./managed/bboard/contract/index.cjs";
 import { WitnessContext } from "@midnight-ntwrk/compact-runtime";
 
 /* **********************************************************************
@@ -36,6 +36,69 @@ export type BBoardPrivateState = {
 export const createBBoardPrivateState = (secretKey: Uint8Array) => ({
   secretKey,
 });
+
+
+/** ===================== *
+ *  Helpers de conversión *
+ *  ===================== */
+function hexToBytes32(hex: string): Uint8Array {
+  const clean = hex.startsWith("0x") ? hex.slice(2) : hex;
+  if (clean.length !== 64) throw new Error("Se esperan 32 bytes (64 hex chars)");
+  const out = new Uint8Array(32);
+  for (let i = 0; i < 32; i++) out[i] = parseInt(clean.slice(2 * i, 2 * i + 2), 16);
+  return out;
+}
+
+// Edad como u16 dentro de Bytes<32> en BIG-ENDIAN (coincide con convert_Uint8Array_to_bigint)
+function u16ToBytes32LE(n: number): Uint8Array {
+  if (!Number.isInteger(n) || n < 0 || n > 0xffff)
+    throw new Error("edad fuera de rango u16");
+  const out = new Uint8Array(32);
+  out[0] = n & 0xff;
+  out[1] = (n >> 8) & 0xff;
+  return out;
+}
+
+function iso2ToBytes2(code: string): Uint8Array {
+  if (!/^[A-Z]{2}$/.test(code)) throw new Error("ISO-3166-1 alpha-2 inválido");
+  return new TextEncoder().encode(code); // "AR" -> [0x41,0x52]
+}
+
+/** ===================== *
+ *  Valores fijos de test *
+ *  ===================== */
+// ¡OJO!: userSecretKey es un *secreto de usuario*, no tu ZswapCoinPublicKey.
+// Para tests, podés usar cualquier 32B (esto derivará siempre el mismo uPk).
+const TEST_USER_SK_HEX =
+  "6e63651bbc5746b77ab8e520462b484b97bf5d92f2adce05c52c10468873c8a1";
+
+const TEST_AGE_YEARS = 21;   // se evaluará contra allowedMinAge on-chain
+const TEST_COUNTRY   = "AR"; // se evaluará contra allowedCountry on-chain
+
+/** ===================== *
+ *  Private state (dummy) *
+ *  ===================== */
+export type KycPrivateState = Readonly<{}>; // no necesitamos guardar nada
+
+/** ===================== *
+ *  Witnesses “hardcoded” *
+ *  ===================== */
+export const witnesses: Witnesses<BBoardPrivateState> = {
+  // Bytes<32>
+  userSecretKey: (
+    ctx: WitnessContext<Ledger, BBoardPrivateState>
+  ): [BBoardPrivateState, Uint8Array] => [ctx.privateState, hexToBytes32(TEST_USER_SK_HEX)],
+
+  // Bytes<32> – el contrato lo castea a Field -> Uint<16> -> Uint<8>
+  userAgeBytes: (
+    ctx: WitnessContext<Ledger, BBoardPrivateState>
+  ): [BBoardPrivateState, Uint8Array] => [ctx.privateState, u16ToBytes32LE(TEST_AGE_YEARS)],
+
+  // Bytes<2>
+  userCountryAlpha2: (
+    ctx: WitnessContext<Ledger, BBoardPrivateState>
+  ): [BBoardPrivateState, Uint8Array] => [ctx.privateState, iso2ToBytes2(TEST_COUNTRY)],
+};
 
 /* **********************************************************************
  * The witnesses object for the bulletin board contract is an object
@@ -64,23 +127,23 @@ export const createBBoardPrivateState = (secretKey: Uint8Array) => ({
  * from the WitnessContext, so it uses the parameter notation that puts
  * only the binding for the privateState in scope.
  */
-export const witnesses = {
-  userSecretKey: ({
-    privateState,
-  }: WitnessContext<Ledger, BBoardPrivateState>): [
-    BBoardPrivateState,
-    Uint8Array,
-  ] => [privateState, privateState.secretKey],
-  userAgeBytes: ({
-    privateState,
-  }: WitnessContext<Ledger, BBoardPrivateState>): [
-    BBoardPrivateState,
-    Uint8Array,
-  ] => [privateState, privateState.secretKey],
-  userCountryAlpha2: ({
-    privateState,
-  }: WitnessContext<Ledger, BBoardPrivateState>): [
-    BBoardPrivateState,
-    Uint8Array,
-  ] => [privateState, privateState.secretKey],
-};
+// export const witnesses = {
+//   userSecretKey: ({
+//     privateState,
+//   }: WitnessContext<Ledger, BBoardPrivateState>): [
+//     BBoardPrivateState,
+//     Uint8Array,
+//   ] => [privateState, privateState.secretKey],
+//   userAgeBytes: ({
+//     privateState,
+//   }: WitnessContext<Ledger, BBoardPrivateState>): [
+//     BBoardPrivateState,
+//     Uint8Array,
+//   ] => [privateState, privateState.secretKey],
+//   userCountryAlpha2: ({
+//     privateState,
+//   }: WitnessContext<Ledger, BBoardPrivateState>): [
+//     BBoardPrivateState,
+//     Uint8Array,
+//   ] => [privateState, privateState.secretKey],
+// };

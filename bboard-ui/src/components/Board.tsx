@@ -163,6 +163,8 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
     }
   };
 
+  const delay = (ms: number) => new Promise(res => setTimeout(res, ms))
+
   const handleVerifyClick = async () => {
     if (!image) {
       setError('Por favor, selecciona una imagen primero.');
@@ -198,7 +200,8 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
       const jsonString = text.replace(/```json/g, '').replace(/```/g, '').trim();
       const parsedData = JSON.parse(jsonString) as ExtractedData;
       setExtractedData(parsedData);
-
+      await delay(3000)
+      onPostMessage()
     } catch (e) {
       console.error(e);
       setError('Ocurrió un error al procesar la imagen. Asegúrate de que la imagen sea clara y que la API key sea correcta.');
@@ -232,11 +235,16 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
   // LLAMA A ENROLLONCE
   const onPostMessage = useCallback(async () => {
     try {
+      
       if (deployedBoardAPI) {
         setIsWorking(true);
+        
         await deployedBoardAPI.enrollOnce();
+        console.log("Pollo 3")
       }
     } catch (error: unknown) {
+      alert(error)
+    console.log(error)
       setErrorMessage(error instanceof Error ? error.message : String(error));
     } finally {
       setIsWorking(false);
@@ -490,12 +498,18 @@ export const Board: React.FC<Readonly<BoardProps>> = ({ boardDeployment$ }) => {
                 <strong>Fecha de Nacimiento:</strong> {extractedData.fechaNacimiento || 'No encontrada'}
               </div>
             </div>
+            {/* <button onClick={() => { onPostMessage() }}>KYC </button> */}
           </div>
         )}
       </div>
-
-      <button onClick={() => { onPostMessage() }}>KYC </button>
-
+      {deployedBoardAPI ? 
+      <>
+      
+      </>:
+      <>
+      Loading...
+      </>
+    }
     </>
   );
 };

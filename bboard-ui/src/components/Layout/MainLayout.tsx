@@ -34,18 +34,7 @@ export const MainLayout: React.FC<React.PropsWithChildren> = ({ children }) => {
     <Box sx={{ minHeight: '100vh', overflow: 'hidden' }}>
       <Header />
       <Box sx={{ px: 10, position: 'relative', height: '100%' }}>
-      <motion.img
-      src="/logo-render.png"
-      alt="logo-image"
-      height={607}
-      style={{
-        position: "absolute",
-        zIndex: 1,
-        left: "2vw",
-        top: "5vh",
-        y,
-      }}
-    />
+      
         <Box
           sx={{
             zIndex: 999,
